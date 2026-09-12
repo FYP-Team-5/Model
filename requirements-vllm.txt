@@ -1,0 +1,7 @@
+# Tested with Python 3.12 and an NVIDIA CUDA environment.
+# vLLM selects its compatible PyTorch version during installation.
+vllm==0.29.0
+vllm-bnb-plugin==0.0.3
+bitsandbytes==0.50.2
+transformers==5.17.0
+huggingface-hub==1.31.0

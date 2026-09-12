@@ -1,0 +1,200 @@
+#!/usr/bin/env bash
+
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+# Both API model names share one base-model process. Selecting LORA_MODEL_NAME
+# activates the adapter; selecting BASE_MODEL_NAME leaves it disabled.
+BASE_MODEL="${BASE_MODEL:-Qwen/Qwen3.5-9B}"
+BASE_MODEL_NAME="${BASE_MODEL_NAME:-qwen35-9b-base}"
+LORA_MODEL_NAME="${LORA_MODEL_NAME:-qwen35-9b-grading-qlora}"
+LORA_PATH="${LORA_PATH:-${SCRIPT_DIR}/qwen35-9b-grading-lora-optimisation}"
+ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"
+
+HOST="${VLLM_HOST:-127.0.0.1}"
+PORT="${VLLM_PORT:-8000}"
+DTYPE="${VLLM_DTYPE:-auto}"
+MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-2048}"
+MAX_NUM_SEQS="${VLLM_MAX_NUM_SEQS:-4}"
+GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.55}"
+MAX_LORA_RANK="${VLLM_MAX_LORA_RANK:-16}"
+QUANTIZATION="${VLLM_QUANTIZATION:-bitsandbytes}"
+ENFORCE_EAGER="${VLLM_ENFORCE_EAGER:-1}"
+USE_FLASHINFER_SAMPLER="${VLLM_USE_FLASHINFER_SAMPLER:-0}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
+VLLM_BIN="${VLLM_BIN:-vllm}"
+
+usage() {
+    cat <<'EOF'
+Serve Qwen3.5-9B base and its grading LoRA through one vLLM server.
+
+Usage:
+  ./serve_qwen35_vllm.sh [extra vllm serve arguments]
+
+API model names:
+  qwen35-9b-base             Base model (adapter disabled)
+  qwen35-9b-grading-qlora    Base model with grading adapter enabled
+
+Important environment overrides:
+  LORA_PATH                     Local adapter directory or Hugging Face repo ID
+  VLLM_HOST                     Bind host (default: 127.0.0.1)
+  VLLM_PORT                     Port (default: 8000)
+  VLLM_MAX_MODEL_LEN            Context limit (default: 2048)
+  VLLM_GPU_MEMORY_UTILIZATION   GPU fraction (default: 0.55)
+  VLLM_MAX_NUM_SEQS             Concurrent sequences (default: 4)
+  VLLM_QUANTIZATION             bitsandbytes or none (default: bitsandbytes)
+  VLLM_ENFORCE_EAGER            1 saves CUDA-graph memory; 0 enables graphs
+  VLLM_USE_FLASHINFER_SAMPLER   0 avoids nvcc JIT; 1 enables it (default: 0)
+  ENV_FILE                      File from which to read HF_TOKEN (default: .env)
+
+Examples:
+  ./serve_qwen35_vllm.sh
+  LORA_PATH=SmuFypTeam5/GradingQlora ./serve_qwen35_vllm.sh
+  VLLM_QUANTIZATION=none ./serve_qwen35_vllm.sh  # Opt out of 4-bit loading
+
+After startup, list both models with:
+  curl http://127.0.0.1:8000/v1/models
+
+Use the model field in an OpenAI-compatible request to select either variant.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+
+read_env_value() {
+    local path="$1"
+    local requested_key="$2"
+    local line name value
+
+    [[ -f "$path" ]] || return 1
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line#"${line%%[![:space:]]*}"}"
+        [[ -z "$line" || "${line:0:1}" == "#" || "$line" != *"="* ]] && continue
+
+        line="${line#export }"
+        name="${line%%=*}"
+        value="${line#*=}"
+        name="${name%"${name##*[![:space:]]}"}"
+        value="${value#"${value%%[![:space:]]*}"}"
+        value="${value%"${value##*[![:space:]]}"}"
+
+        [[ "$name" == "$requested_key" ]] || continue
+
+        if [[ ${#value} -ge 2 ]]; then
+            if [[ "${value:0:1}" == '"' && "${value: -1}" == '"' ]]; then
+                value="${value:1:${#value}-2}"
+            elif [[ "${value:0:1}" == "'" && "${value: -1}" == "'" ]]; then
+                value="${value:1:${#value}-2}"
+            fi
+        fi
+
+        printf '%s' "$value"
+        return 0
+    done < "$path"
+
+    return 1
+}
+
+# Hugging Face Hub automatically consumes an exported HF_TOKEN. Reading only
+# this key avoids executing arbitrary shell content from .env.
+if [[ -z "${HF_TOKEN:-}" ]]; then
+    HF_TOKEN="$(read_env_value "$ENV_FILE" HF_TOKEN || true)"
+    if [[ -n "$HF_TOKEN" ]]; then
+        export HF_TOKEN
+    fi
+fi
+
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    echo "ERROR: Python executable not found: $PYTHON_BIN" >&2
+    exit 1
+fi
+
+if ! command -v "$VLLM_BIN" >/dev/null 2>&1; then
+    echo "ERROR: vLLM executable not found: $VLLM_BIN" >&2
+    echo "Activate the CUDA-enabled environment that contains vLLM." >&2
+    exit 1
+fi
+
+vllm_version="$($PYTHON_BIN -c 'import importlib.metadata; print(importlib.metadata.version("vllm"))' 2>/dev/null || true)"
+if [[ "$vllm_version" == *"+cpu"* ]]; then
+    echo "ERROR: installed vLLM build is CPU-only ($vllm_version)." >&2
+    echo "Install a CUDA-enabled vLLM build before serving Qwen3.5-9B." >&2
+    exit 1
+fi
+
+if ! "$PYTHON_BIN" -c 'import torch; raise SystemExit(0 if torch.cuda.is_available() else 1)' >/dev/null 2>&1; then
+    echo "ERROR: the active Python environment does not have a working CUDA PyTorch runtime." >&2
+    exit 1
+fi
+
+if [[ -d "$LORA_PATH" ]]; then
+    if [[ ! -f "$LORA_PATH/adapter_config.json" || ! -f "$LORA_PATH/adapter_model.safetensors" ]]; then
+        echo "ERROR: local adapter directory is incomplete: $LORA_PATH" >&2
+        exit 1
+    fi
+elif [[ "$LORA_PATH" == /* || "$LORA_PATH" == ./* || "$LORA_PATH" == ../* ]]; then
+    echo "ERROR: local adapter path does not exist: $LORA_PATH" >&2
+    exit 1
+fi
+
+if [[ "$QUANTIZATION" != "none" && "$QUANTIZATION" != "bitsandbytes" ]]; then
+    echo "ERROR: VLLM_QUANTIZATION must be 'none' or 'bitsandbytes'." >&2
+    exit 2
+fi
+
+if [[ "$QUANTIZATION" == "bitsandbytes" ]]; then
+    if ! "$PYTHON_BIN" -c 'import importlib.metadata; importlib.metadata.version("vllm-bnb-plugin")' >/dev/null 2>&1; then
+        echo "ERROR: bitsandbytes mode requires the vllm-bnb-plugin package." >&2
+        echo "Install it with: uv pip install vllm-bnb-plugin" >&2
+        echo "To opt out of 4-bit loading, use VLLM_QUANTIZATION=none." >&2
+        exit 1
+    fi
+fi
+
+if [[ "$USE_FLASHINFER_SAMPLER" != "0" && "$USE_FLASHINFER_SAMPLER" != "1" ]]; then
+    echo "ERROR: VLLM_USE_FLASHINFER_SAMPLER must be 0 or 1." >&2
+    exit 2
+fi
+
+# FlashInfer sampling JIT-compiles CUDA code when its prebuilt kernel is not
+# available. The PyTorch-native sampler works without a local nvcc toolkit.
+export VLLM_USE_FLASHINFER_SAMPLER="$USE_FLASHINFER_SAMPLER"
+
+vllm_args=(
+    serve "$BASE_MODEL"
+    --served-model-name "$BASE_MODEL_NAME"
+    --enable-lora
+    --lora-modules "${LORA_MODEL_NAME}=${LORA_PATH}"
+    --max-lora-rank "$MAX_LORA_RANK"
+    --dtype "$DTYPE"
+    --max-model-len "$MAX_MODEL_LEN"
+    --max-num-seqs "$MAX_NUM_SEQS"
+    --gpu-memory-utilization "$GPU_MEMORY_UTILIZATION"
+    --host "$HOST"
+    --port "$PORT"
+)
+
+if [[ "$ENFORCE_EAGER" == "1" ]]; then
+    vllm_args+=(--enforce-eager)
+elif [[ "$ENFORCE_EAGER" != "0" ]]; then
+    echo "ERROR: VLLM_ENFORCE_EAGER must be 0 or 1." >&2
+    exit 2
+fi
+
+if [[ "$QUANTIZATION" == "bitsandbytes" ]]; then
+    vllm_args+=(--quantization bitsandbytes)
+fi
+
+echo "Starting one vLLM server with two selectable models:"
+echo "  Base:    $BASE_MODEL_NAME ($BASE_MODEL)"
+echo "  Adapter: $LORA_MODEL_NAME ($LORA_PATH)"
+echo "  Quantization: $QUANTIZATION"
+echo "  FlashInfer sampler: $USE_FLASHINFER_SAMPLER"
+echo "  API:     http://${HOST}:${PORT}/v1"
+
+exec "$VLLM_BIN" "${vllm_args[@]}" "$@"
