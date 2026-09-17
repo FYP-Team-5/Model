@@ -12,7 +12,7 @@ LORA_MODEL_NAME="${LORA_MODEL_NAME:-qwen35-9b-grading-qlora}"
 LORA_PATH="${LORA_PATH:-${SCRIPT_DIR}/qwen35-9b-grading-lora-optimisation}"
 ENV_FILE="${ENV_FILE:-${SCRIPT_DIR}/.env}"
 
-HOST="${VLLM_HOST:-127.0.0.1}"
+HOST="${VLLM_HOST:-0.0.0.0}"
 PORT="${VLLM_PORT:-8000}"
 DTYPE="${VLLM_DTYPE:-auto}"
 MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-2048}"
@@ -38,7 +38,7 @@ API model names:
 
 Important environment overrides:
   LORA_PATH                     Local adapter directory or Hugging Face repo ID
-  VLLM_HOST                     Bind host (default: 127.0.0.1)
+    VLLM_HOST                     Bind host (default: 0.0.0.0)
   VLLM_PORT                     Port (default: 8000)
   VLLM_MAX_MODEL_LEN            Context limit (default: 2048)
   VLLM_GPU_MEMORY_UTILIZATION   GPU fraction (default: 0.55)
