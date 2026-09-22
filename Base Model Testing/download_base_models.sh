@@ -138,10 +138,10 @@ export HF_HUB_ETAG_TIMEOUT="${HF_HUB_ETAG_TIMEOUT:-60}"
 MODELS=(
     "Qwen/Qwen3.5-4B"
     "Qwen/Qwen3.5-9B"
-    "Qwen/Qwen3.5-27B"
-    "Qwen/Qwen3.8-27B"
+    # "Qwen/Qwen3.5-27B"
+    # "Qwen/Qwen3.8-27B"
     "google/gemma-4-12B-it"
-    "google/gemma-4-26B-A4B-it"
+    # "google/gemma-4-26B-A4B-it"
     "ibm-granite/granite-4.2-8b"
     "ornith-ai/Ornith-1.5-9B"
 )

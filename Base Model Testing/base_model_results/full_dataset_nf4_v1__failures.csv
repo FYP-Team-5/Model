@@ -1,0 +1,2 @@
+model,model_id,mode,error_type,error
+Qwen3.5 4B,Qwen/Qwen3.5-4B,non-thinking,RuntimeError,Failed to find C compiler. Please specify via CC environment variable or set triton.knobs.build.impl.
