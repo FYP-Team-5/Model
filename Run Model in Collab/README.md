@@ -1,6 +1,6 @@
 # Run the grading model in Colab
 
-[`Run_qLoRA_Colab_vLLM.ipynb`](Run_qLoRA_Colab_vLLM.ipynb) serves the `Qwen/Qwen3.5-9B` base model with the `SmuFypTeam5/GradingQlora` LoRA adapter through an OpenAI-compatible vLLM API. The adapter is exposed as the model name `grading`. The notebook uses 4-bit BitsAndBytes loading by default and can expose the server through a temporary Cloudflare Quick Tunnel.
+[`Run_qLoRA_Colab_vLLM.ipynb`](Run_qLoRA_Colab_vLLM.ipynb) serves the `Qwen/Qwen3.5-9B` base model with the `SmuFypTeam5/GradingQlora` LoRA adapter through an OpenAI-compatible vLLM API. The adapter is exposed as the model name `grading`. The notebook uses 4-bit BitsAndBytes loading by default, enables eager execution to skip CUDA graph capture like `serve_qwen35_vllm.sh`, and can expose the server through a temporary Cloudflare Quick Tunnel.
 
 ## Run the notebook
 
@@ -37,7 +37,7 @@ curl -sS "$VLLM_BASE_URL/chat/completions" \
     "messages": [
       {
         "role": "system",
-        "content": "You are a strict grading assistant. Return ONLY a valid JSON array containing 0 or 1, with one value per criterion in order. Do not include explanations or markdown."
+        "content": "You are a strict grading assistant. Return ONLY a valid JSON array containing 0 or 1 (not booleans), with one value per criterion in order. Do not include explanations or markdown."
       },
       {
         "role": "user",
