@@ -1,0 +1,2 @@
+model,model_id,mode,error_type,error
+ChatGPT,gpt-5.6-luna,non-thinking,TypeError,Decompressor.decompress() got an unexpected keyword argument 'output_buffer_limit'

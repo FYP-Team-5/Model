@@ -1,0 +1,2 @@
+model,model_id,mode,examples,invalid_output_rate,exact_match_accuracy,per_criterion_accuracy,precision,recall,f1,final_score_exact_accuracy,final_score_within_one_accuracy,final_score_mae,final_score_rmse,final_score_pearson,final_score_qwk,generation_minutes,mean_generation_seconds
+ChatGPT,gpt-5.6-luna,non-thinking,3778,0.0,0.6667548967707781,0.8417258446309447,0.9253499222395023,0.7511045655375552,0.8291719893159911,0.6741662255161461,0.9618845950238222,0.3703017469560614,0.6900564265984984,0.7734298686740506,0.7493628994126351,94.28613108666802,1.497397529168894
