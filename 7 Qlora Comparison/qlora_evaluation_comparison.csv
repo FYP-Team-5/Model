@@ -1,0 +1,8 @@
+model,base_model,lora_rank,lora_alpha,training_seed,split_seed,source_notebooks,examples,valid_examples,recovered_output_rate,invalid_output_rate,exact_match_accuracy,per_criterion_accuracy,precision,recall,f1,final_score_exact_accuracy,final_score_within_one_accuracy,final_score_mae,final_score_rmse,final_score_pearson,final_score_qwk
+Baseline Qwen3.5-9B,Qwen/Qwen3.5-9B,,,,42,"7 qlora (16r,32a).ipynb; 7 qlora (24r,48a).ipynb; 7 qlora (32r,64a).ipynb; 7 qlora (40r,80a).ipynb; 7 qlora (48r,96a).ipynb; 7 qlora (56r,112a).ipynb",389,389,0.0,0.0,0.740360,0.868565,0.877470,0.884462,0.880952,0.740360,0.966581,0.308483,0.684008,0.808275,0.801316
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,16,32,42,42,"7 qlora (16r,32a).ipynb",389,389,0.0,0.0,0.755784,0.880613,0.874286,0.914343,0.893866,0.763496,0.984576,0.264781,0.606308,0.846259,0.840042
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,24,48,42,42,"7 qlora (24r,48a).ipynb",389,389,0.0,0.0,0.768638,0.892662,0.868613,0.948207,0.906667,0.771208,0.989717,0.246787,0.560022,0.869186,0.860671
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,32,64,42,42,"7 qlora (32r,64a).ipynb",389,389,0.0,0.0,0.77635,0.894852,0.874539,0.944223,0.908046,0.784062,0.992288,0.231362,0.541349,0.876616,0.869432
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,40,80,42,42,"7 qlora (40r,80a).ipynb",389,389,0.0,0.0,0.763496,0.889376,0.876173,0.930279,0.902415,0.768638,0.989717,0.249357,0.562313,0.872598,0.864139
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,48,96,42,42,"7 qlora (48r,96a).ipynb",389,389,0.0,0.0,0.804627,0.903614,0.902724,0.924303,0.913386,0.812339,0.992288,0.210797,0.564594,0.858365,0.855710
+Fine-tuned QLoRA,Qwen/Qwen3.5-9B,56,112,42,42,"7 qlora (56r,112a).ipynb",389,389,0.0,0.0,0.773779,0.889376,0.877589,0.928287,0.902227,0.781491,0.989717,0.244216,0.597768,0.844301,0.839585
