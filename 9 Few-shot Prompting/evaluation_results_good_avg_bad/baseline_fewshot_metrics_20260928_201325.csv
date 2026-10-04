@@ -1,0 +1,2 @@
+model,examples,valid_examples,recovered_output_rate,invalid_output_rate,final_score_exact_accuracy,final_score_within_half_accuracy,final_score_within_one_accuracy,final_score_mae,final_score_rmse,normalized_mae,final_score_pearson,final_score_qwk
+Baseline Qwen3.5-9B (fewshot),389,384,0,0.012853470437017995,0.4601542416452442,0.6143958868894601,0.9203084832904884,0.5291666666666667,0.8351958353184799,0.22434895833333332,0.7559598510316646,0.7248007143150859
