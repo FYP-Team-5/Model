@@ -1,0 +1,4 @@
+,invalid_output_rate,exact_match_accuracy,final_score_exact_accuracy,final_score_within_one_accuracy,final_score_mae,final_score_rmse,final_score_pearson,final_score_qwk
+mode,non-thinking,non-thinking,non-thinking,non-thinking,non-thinking,non-thinking,non-thinking,non-thinking
+model,,,,,,,,
+ChatGPT (few-shot),0.0,0.6611964002117523,0.6611964002117523,0.9708840656431976,0.3708311275807305,0.666247441860058,0.7957621287073018,0.791071148389699
