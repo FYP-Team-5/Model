@@ -1,4 +1,29 @@
-# qlora
+# Grading Model
+
+## Project structure
+
+### Archive
+Archive of all the past experiments. 
+
+### Base Model Testing
+Pre fine-tuned testing on the following models:
+- `Qwen/Qwen3.5-4B`
+- `Qwen/Qwen3.5-9B`
+- `google/gemma-4-12B-it`
+- `ibm-granite/granite-4.2-8b`
+- `ornith-ai/Ornith-1.5-9B`
+
+### Datasets
+Cleaned datasets used for training and testing.
+
+### Few-shot Prompting
+Results of few-shot prompting technique on `Qwen/Qwen3.5-9B`
+
+### Online LLM Testing
+Results of rubric-based grading and few=shot prompting technique on `GPT-5.6-Luna`
+
+### Rubrics
+Results of rubric-based grading on `Qwen/Qwen3.5-9B` + QLoRA
 
 ## Install the vLLM server
 
